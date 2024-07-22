@@ -1,0 +1,110 @@
+// all code comes from https://matomo.org/faq/new-to-piwik/how-do-i-install-the-matomo-tracking-code-on-my-shopify-store/
+// for pixel method checkout https://matomo.org/faq/new-to-piwik/how-do-i-install-the-matomo-tracking-code-using-shopify-custom-pixels/
+
+// to switch website, change two lines at: _paq.push(['setSiteId', '5']);
+
+
+// code for theme.liquid
+<!-- Matomo -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  
+  {% if template == 'collection' %}
+  {% capture tag_list %}{% for tag in collection.all_tags limit:5 %}{{ tag }}{% if forloop.last == false %}::{% endif%}{% endfor %}{% endcapture %}
+  {% assign tag_array = tag_list | split: '::'%}
+      _paq.push(['setEcommerceView',
+      false, // Product name is not applicable for a category view.
+      false, // Product SKU is not applicable for a category view.
+      {{ tag_array | json }}, // Product category, or array of up to 5 categories
+      ]);
+  {% endif %}
+  {% if template == 'product' %}
+      {% capture tag_list %}{% for tag in product.tags limit:5 %}{{ tag }}{% if forloop.last == false %}::{% endif%}{% endfor %}{% endcapture %}
+      {% assign tag_array = tag_list | split: '::'%}
+      _paq.push(['setEcommerceView',
+      {{ product.id }}, // (Required) productSKU
+      {{ product.title | json}}, // (Optional) productName
+      {{ tag_array | json }}, // (Optional) categoryName
+      {{ product.price | divided_by:100 }} // (Optional) price
+      ]);
+  {% endif %}
+  
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="https://fitueyes.matomo.cloud/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '5']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src='//cdn.matomo.cloud/fitueyes.matomo.cloud/matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code -->
+
+
+
+
+
+// code for cart-template.liquid
+<script>
+  var _paq = window._paq = window._paq || [];
+  {% for item in cart.items %}
+  {% capture tag_list %}{% for tag in item.product.tags limit:5 %}{{ tag }}{% if forloop.last == false %}::{% endif%}{% endfor %}{% endcapture %}
+  {% assign tag_array = tag_list | split: '::'%}
+  _paq.push(['addEcommerceItem',
+    {{ item.product_id }}, // (Required) productSKU
+    {{ item.title | json }}, // (Optional) productName
+    {{ tag_array | json }}, // (Optional) productCategory
+    {{ item.final_price | divided_by:100 }}, // (Recommended) price
+    {{ item.quantity }} // (Optional, defaults to 1) quantity
+    ]);
+  {% endfor %}
+  _paq.push(['trackEcommerceCartUpdate', {{ cart.total_price | divided_by:100 }}]);
+</script>
+
+
+
+
+
+
+// code for order status page
+<!-- Matomo -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="https://fitueyes.matomo.cloud/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '5']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src='//cdn.matomo.cloud/fitueyes.matomo.cloud/matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code -->
+
+{% if first_time_accessed %}
+<script>
+  {%  for line_item in checkout.line_items %}
+  {% capture tag_list %}{% for tag in line_item.product.tags limit:5 %}{{ tag }}{% if forloop.last == false %}::{% endif%}{% endfor %}{% endcapture %}
+  {% assign tag_array = tag_list | split: '::'%}
+  _paq.push(['addEcommerceItem',
+      {{ line_item.product_id }}, // (Required) productSKU
+      {{ line_item.title | json }}, // (Optional) productName
+      {{ tag_array | json}}, // (Optional) productCategory
+      {{ line_item.final_price | divided_by:100 }}, // (Recommended) price
+      {{ line_item.quantity }} // (Optional, defaults to 1) quantity
+  ]);
+  {% endfor %}
+  _paq.push(['trackEcommerceOrder',
+      {{ checkout.order_id }}, // (Required) orderId
+      {{ checkout.total_price | divided_by:100 }}, // (Required) grandTotal (revenue)
+      {{ checkout.subtotal_price  | divided_by:100  }}, // (Optional) subTotal
+      {{ checkout.tax_price  | divided_by:100  }}, // (optional) tax
+      {{ checkout.shipping_price  | divided_by:100  }}, // (optional) shipping
+      {{ checkout.discounts_amount  | divided_by:100  }} // (optional) discount
+  ]);
+</script>
+{% endif %}
